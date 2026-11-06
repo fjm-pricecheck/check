@@ -112,6 +112,12 @@ details.card[open]>summary{margin-bottom:4px}
 .nav .pos{font-size:13px;color:var(--muted);min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
 .shot{max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--line);align-self:flex-start}
 body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:not(.need){display:none!important}
+.prod{height:176px;overflow:hidden;align-content:flex-start}
+.prod .nm{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.pbar{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#live{min-height:34px}
+#msg{height:84px;overflow:hidden}
+.nav .pos{display:inline-block}
 .badge.b-nf{background:var(--warn-bg);color:var(--warn)}
 </style>
 </head>
@@ -481,7 +487,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     p.hidden = false;
     if (found){
       $('pName').textContent = found.n || '(không có tên)';
-      $('pCode').textContent = found.nb ? 'Item ' + found.c + ' (không có barcode)' : found.c;
+      $('pCode').textContent = found.nb ? 'Item ' + found.c : found.c;
       setImg(found.img, found.c);
       $('pRef').textContent = found.np != null ? fmt(found.np) : '-';
       $('pPromo').textContent = found.pp ? 'KM ' + fmt(found.pp) : '';
@@ -524,12 +530,12 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     } else if (clearIfNone){ $('price').value = ''; $('promo').value = ''; $('note').value = ''; }
     liveDiff();
   }
-  function openItem(r){
+  function openItem(r, scroll){
     editingId = null;
     $('code').value = r.c; $('code').dataset.listDate = '';
     lookup(); say($('msg'), ''); fillRec(true);
-    $('price').focus();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try { $('price').focus({ preventScroll: true }); } catch(e){ $('price').focus(); }
+    if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function liveDiff(){
     var s = parsePrice($('price').value), box = $('live');
@@ -680,7 +686,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     var base = (existed ? 'Đã cập nhật: ' : 'Đã lưu: ') + (rec.name || barcode) + ' · ' + compBy[comp].n + ' · ' + (nf ? 'Không thấy' : fmt(price) + ' · ' + j.t);
     var kind = (!nf && (j.k === 'hi' || j.k === 'lo')) ? 'err' : 'good';
     if (nxt){
-      openItem(nxt); window.scrollTo({ top: 0 });
+      openItem(nxt);
       say($('msg'), base + ' → chuyển sang: ' + (nxt.n || nxt.c) + ' (bấm Lùi lại để quay về)', kind);
     } else {
       reset(); refresh();
@@ -742,7 +748,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     var u = e.target.closest('button[data-unwatch]');
     if (u){ delete watch[u.getAttribute('data-unwatch')]; saveWatch(); refresh(); lookup(); return; }
     var b = e.target.closest('button[data-bar]'); if (!b) return;
-    var r = byBar[wkey(b.getAttribute('data-bar'))]; if (r) openItem(r);
+    var r = byBar[wkey(b.getAttribute('data-bar'))]; if (r) openItem(r, true);
   });
   $('btnWatch').addEventListener('click', function(){
     var k = found ? wkey(found.c) : codeKey($('code').value);
