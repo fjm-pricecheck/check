@@ -113,8 +113,8 @@ details.card[open]>summary{margin-bottom:4px}
 .nav .btn{flex:1}
 .nav .pos{font-size:13px;color:var(--muted);min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
 .shot{max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--line);align-self:flex-start}
-body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:not(.need){display:none!important}
-.prod{height:176px;overflow:hidden;align-content:flex-start}
+body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:not(.need){display:none!important}
+.prod{height:176px;overflow:hidden;align-content:space-between}
 .prod .nm{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
 .pbar{font-size:20px;white-space:normal;overflow-wrap:anywhere;line-height:1.15}
 #live{min-height:34px}
@@ -150,10 +150,10 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
       <div class="c-nf"><b id="cNf">0</b>Không thấy</div>
       <div><b id="cTodo">0</b>Chưa check</div>
     </div>
-    <label class="f">Mã vạch (Barcode) hoặc Item Code
+    <label class="f" id="codeBox">Mã vạch (Barcode) hoặc Item Code
       <input id="code" class="code-in" inputmode="numeric" autocomplete="off" placeholder="Quét hoặc gõ mã">
     </label>
-    <div class="row">
+    <div class="row" id="scanRow">
       <button class="btn primary" id="btnScan" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg>
         Quét camera
@@ -170,7 +170,6 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     </div>
 
     <div id="prod" class="prod" hidden>
-      <div class="pimg" id="pImg" aria-hidden="true"></div>
       <div class="info">
         <div class="pbar" id="pCode"></div>
         <div class="nm" id="pName"></div>
@@ -393,6 +392,14 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     return out;
   }
   function seqIndex(){ if (!found) return -1; var k = wkey(found.c), q = seq(); for (var i = 0; i < q.length; i++) if (wkey(q[i].c) === k) return i; return -1; }
+  // vào trang hoặc đổi tháng: tự mở sản phẩm chưa check đầu tiên (không bật bàn phím)
+  function autoOpen(){
+    if (found) return;
+    var q = seq(); if (!q.length) return;
+    var comp = $('comp').value, first = null;
+    for (var i = 0; i < q.length; i++){ if (statusOf(q[i], comp) === 'todo'){ first = q[i]; break; } }
+    openItem(first || q[0], false, true);
+  }
   function nextPending(from){
     var q = seq(), comp = $('comp').value, n = q.length;
     for (var i = 1; i <= n; i++){ var r = q[(from + i + n) % n]; if (r && statusOf(r, comp) === 'todo' && (from < 0 || wkey(r.c) !== wkey(q[from].c))) return r; }
@@ -489,7 +496,6 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     if (found){
       $('pName').textContent = found.n || '(không có tên)';
       $('pCode').textContent = found.nb ? 'Item ' + found.c : found.c;
-      setImg(found.img, found.c);
       $('pRef').textContent = found.np != null ? fmt(found.np) : '-';
       $('pPromo').textContent = found.pp ? 'KM ' + fmt(found.pp) : '';
       $('pTag').style.visibility = 'visible';
@@ -497,31 +503,12 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     } else {
       $('btnWatch').hidden = true;
       $('pName').textContent = list.length ? 'Mã này chưa có trong file Price Check' : 'Chưa nạp file Price Check';
-      $('pCode').textContent = raw.trim(); setImg('', '');
+      $('pCode').textContent = raw.trim();
       $('pRef').textContent = '-'; $('pPromo').textContent = '';
       $('pTag').style.visibility = 'hidden';
     }
     liveDiff();
   }
-  var IMG_PH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>';
-  function setImg(src, code){
-    var box = $('pImg'); box.innerHTML = IMG_PH;
-    var tries = [];
-    if (src && /^(https?:)?\/\//i.test(src)) tries.push(src);
-    var k = String(code || '').replace(/\D/g, '');
-    if (k) ['', '.1', '_1', '-1'].forEach(function(sf){ ['jpg','png','webp','jpeg'].forEach(function(e){ tries.push('img/' + k + sf + '.' + e); }); });
-    if (k) ['png','jpg','webp','jpeg'].forEach(function(e){ tries.push(k + '.' + e); });   // ảnh để ngay thư mục ngoài cùng
-    var token = ++imgToken;
-    (function next(i){
-      if (token !== imgToken || i >= tries.length) return;
-      var im = new Image(); im.alt = ''; im.referrerPolicy = 'no-referrer';
-      im.style.cssText = 'width:100%;height:100%;object-fit:contain';
-      im.onload = function(){ if (token === imgToken){ box.innerHTML = ''; box.appendChild(im); } };
-      im.onerror = function(){ next(i + 1); };
-      im.src = tries[i];
-    })(0);
-  }
-  var imgToken = 0;
   // điền sẵn giá đã ghi (để sửa); clearIfNone: xóa ô nếu chưa có bản ghi
   function fillRec(clearIfNone){
     var comp = $('comp').value, rec = found ? checks[checkId(rowLd(found), found.c, comp)] : null;
@@ -531,11 +518,11 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     } else if (clearIfNone){ $('price').value = ''; $('promo').value = ''; $('note').value = ''; }
     liveDiff();
   }
-  function openItem(r, scroll){
+  function openItem(r, scroll, noFocus){
     editingId = null;
     $('code').value = r.c; $('code').dataset.listDate = '';
-    lookup(); say($('msg'), ''); fillRec(true);
-    try { $('price').focus({ preventScroll: true }); } catch(e){ $('price').focus(); }
+    lookup(); say($('msg'), ''); fillRec(true); renderTodo();
+    if (!noFocus){ try { $('price').focus({ preventScroll: true }); } catch(e){ $('price').focus(); } }
     if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function liveDiff(){
@@ -680,7 +667,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
   $('promo').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); save(); } });
   $('filter').addEventListener('change', function(){ shown = 100; renderList(); });
   $('comp').addEventListener('change', function(){ LS.set('cg3_comp', $('comp').value); renderTodo(); if (found) fillRec(true); });
-  $('monthSel').addEventListener('change', function(){ curMonth = $('monthSel').value; LS.set('cg5_month', curMonth); buildIndex(); lookup(); refresh(); });
+  $('monthSel').addEventListener('change', function(){ curMonth = $('monthSel').value; LS.set('cg5_month', curMonth); buildIndex(); lookup(); refresh(); if (!found) autoOpen(); });
   $('q').addEventListener('input', renderPick);
   $('tabMine').addEventListener('click', function(){ tab = 'mine'; renderTodo(); });
   $('tabPick').addEventListener('click', function(){ tab = 'pick'; renderTodo(); });
@@ -939,7 +926,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     watch = {};
     list.forEach(function(r){ var k = wkey(r.c); if (k) watch[k] = 1; });
     $('refBox').classList.remove('need'); $('refBox').open = false;
-    buildIndex(); lookup(); refresh();
+    buildIndex(); lookup(); refresh(); autoOpen();
   }
   async function loadPreset(){
     var names = ['data.xlsx', 'data.csv'], why = [];
