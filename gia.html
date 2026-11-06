@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Check giá">
+<title>Check Giá Thị Trường</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: một cột như tem giá trên kệ. Trên cùng là ô ghi giá, kế đó danh sách cần check theo ngày, rồi danh sách đã ghi, cuối cùng là nạp file Price Check */
+:root{
+  --bg:#eef1f0; --surface:#ffffff; --ink:#15201c; --muted:#58675f; --line:#d3dbd7;
+  --accent:#0f766e; --accent-ink:#ffffff; --tag:#ffd23f; --tag-ink:#231b00;
+  --ok:#17794a; --ok-bg:#e3f4ea; --warn:#a85a00; --warn-bg:#fdf0dc; --bad:#c3262b; --bad-bg:#fbe5e5; --neutral-bg:#e8ecea;
+  --f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --f-body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1412; --surface:#17201d; --ink:#e7eeea; --muted:#9db0a6; --line:#2a3731;
+    --accent:#5eead4; --accent-ink:#042f2a; --tag:#ffd23f; --tag-ink:#231b00;
+    --ok:#5fd394; --ok-bg:#12301f; --warn:#f0b35a; --warn-bg:#3a2810; --bad:#ff8a8d; --bad-bg:#3c1618; --neutral-bg:#222d28;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1412; --surface:#17201d; --ink:#e7eeea; --muted:#9db0a6; --line:#2a3731;
+  --accent:#5eead4; --accent-ink:#042f2a; --tag:#ffd23f; --tag-ink:#231b00;
+  --ok:#5fd394; --ok-bg:#12301f; --warn:#f0b35a; --warn-bg:#3a2810; --bad:#ff8a8d; --bad-bg:#3c1618; --neutral-bg:#222d28;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+html{color-scheme:light}
+@media (prefers-color-scheme: dark){html:not([data-theme="light"]){color-scheme:dark}}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.4;
+  padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--f-display);font-weight:700;font-size:30px;letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
+.sub{color:var(--muted);font-size:14px;margin:4px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px 12px;min-width:0;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.code-in{font-family:var(--f-display);font-weight:600;font-size:24px;letter-spacing:.06em}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:11px 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{padding:6px 10px;font-size:13px;font-weight:500}
+.btn.danger{color:var(--bad)}
+.btn svg{width:18px;height:18px;flex:none}
+.prod{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--bg)}
+.prod .nm{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.prod .cd{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tag{background:var(--tag);color:var(--tag-ink);border-radius:6px;padding:4px 10px;text-align:right;flex:none}
+.tag small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.tag b{font-family:var(--f-display);font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.tag .pm{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600}
+.b-ok{background:var(--ok-bg);color:var(--ok)}
+.b-hi{background:var(--bad-bg);color:var(--bad)}
+.b-lo{background:var(--warn-bg);color:var(--warn)}
+.b-noref{background:var(--neutral-bg);color:var(--muted)}
+.status{min-height:20px;font-size:14px;color:var(--muted)}
+.status.err{color:var(--bad)}
+.status.good{color:var(--ok)}
+.list{display:flex;flex-direction:column}
+.rec{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line)}
+.rec:first-child{border-top:0}
+.rec .t{font-weight:600;overflow-wrap:anywhere;min-width:0}
+.rec .m{font-size:13px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.rec .p{font-family:var(--f-display);font-weight:700;font-size:22px;text-align:right;font-variant-numeric:tabular-nums}
+.rec .acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.todo{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;color:inherit;font:inherit;text-align:left;width:100%}
+.todo:first-child{border-top:0}
+.todo .t{font-weight:600;overflow-wrap:anywhere;min-width:0}
+.todo .m{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.todo.done .t{color:var(--muted);text-decoration:line-through}
+.scan{position:fixed;inset:0;z-index:50;background:#000;display:flex;flex-direction:column}
+.scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scan .frame{position:absolute;left:8%;right:8%;top:30%;height:26%;border:3px solid #22c55e;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
+.scan .top,.scan .bot{position:absolute;left:0;right:0;padding:16px max(16px,env(safe-area-inset-left,0px));display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.scan .top{top:env(safe-area-inset-top,0px);color:#fff;text-align:center;font-weight:600;text-shadow:0 1px 3px #000}
+.scan .bot{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.scan .btn{background:rgba(255,255,255,.92);color:#111;border-color:transparent}
+.empty{color:var(--muted);font-size:14px;padding:8px 0}
+details.card>summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);list-style:none}
+details.card>summary::-webkit-details-marker{display:none}
+details.card[open]>summary{margin-bottom:4px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between}
+.stat{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin-top:8px}
+.stat b{color:var(--ink);font-variant-numeric:tabular-nums}
+.prod{flex-wrap:wrap;justify-content:flex-start}
+.prod .info{flex:1 1 150px;min-width:0}
+.prod .tag{margin-left:auto;display:flex;align-items:baseline;gap:8px;flex:1 1 100%;justify-content:space-between;text-align:left}
+.prod .tag small{display:inline}
+.pimg{width:76px;height:76px;border-radius:8px;object-fit:contain;background:var(--neutral-bg);flex:none;display:grid;place-items:center;color:var(--muted);overflow:hidden}
+.pimg svg{width:30px;height:30px}
+.pbar{font-family:var(--f-display);font-weight:600;font-size:22px;letter-spacing:.05em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.counter{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.counter div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 6px;text-align:center;font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.counter b{display:block;font-family:var(--f-display);font-size:26px;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
+.counter .c-ok b{color:var(--ok)} .counter .c-nf b{color:var(--warn)}
+.nav{display:flex;gap:8px;align-items:center}
+.nav .btn{flex:1}
+.nav .pos{font-size:13px;color:var(--muted);min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
+.shot{max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--line);align-self:flex-start}
+.badge.b-nf{background:var(--warn-bg);color:var(--warn)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Check Giá Thị Trường</h1>
+    <p class="sub">Quét mã vạch ở kệ đối thủ, ghi giá thường và giá KM trên tem, so với giá bán FJM.</p>
+    <div class="stat"><span>Sản phẩm trong file: <b id="sRef">0</b></span><span>Đã ghi: <b id="sRec">0</b></span><span>Lệch giá: <b id="sDiff">0</b></span></div>
+    <p class="hint" id="sync" style="margin-top:6px"></p>
+  </header>
+
+  <section class="card" aria-labelledby="h-scan">
+    <h2 id="h-scan">Check giá</h2>
+    <div class="row">
+      <label class="f">Tháng
+        <select id="monthSel"></select>
+      </label>
+      <label class="f">Đối thủ
+        <select id="comp"></select>
+      </label>
+    </div>
+    <div class="counter" aria-live="polite">
+      <div class="c-ok"><b id="cDone">0</b>Đã check</div>
+      <div class="c-nf"><b id="cNf">0</b>Không thấy</div>
+      <div><b id="cTodo">0</b>Chưa check</div>
+    </div>
+    <label class="f">Mã vạch (Barcode) hoặc Item Code
+      <input id="code" class="code-in" inputmode="numeric" autocomplete="off" placeholder="Gõ, quét máy hoặc chụp ảnh">
+    </label>
+    <div class="row">
+      <button class="btn primary" id="btnScan" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg>
+        Quét camera
+      </button>
+      <label class="btn" for="cam" id="camBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Chụp mã vạch
+      </label>
+      <button class="btn" id="btnFind" type="button">Tìm sản phẩm</button>
+    </div>
+    <input id="cam" type="file" accept="image/*" capture="environment" hidden>
+    <div id="scanner" class="scan" hidden>
+      <video id="vid" playsinline muted></video>
+      <div class="frame"></div>
+      <div class="top"><span id="scanMsg">Đưa mã vạch nằm ngang vào khung xanh, đưa lại gần.</span></div>
+      <div class="bot">
+        <button class="btn" id="btnTorch" type="button" hidden>Bật đèn pin</button>
+        <label class="btn" for="cam">Chụp ảnh mã vạch</label>
+        <button class="btn" id="btnScanClose" type="button">Đóng</button>
+      </div>
+    </div>
+
+    <div id="prod" class="prod" hidden>
+      <div class="pimg" id="pImg" aria-hidden="true"></div>
+      <div class="info">
+        <div class="pbar" id="pCode"></div>
+        <div class="nm" id="pName"></div>
+        <button class="btn small" id="btnWatch" type="button" style="margin-top:6px" hidden>Thêm vào danh sách cần check</button>
+      </div>
+      <div class="tag" id="pTag"><small>Giá bán FJM (+VAT)</small><b id="pRef">-</b><div class="pm" id="pPromo"></div></div>
+    </div>
+    <div class="nav" id="nav" hidden>
+      <button class="btn" id="btnPrev" type="button">&#8249; Lùi lại</button>
+      <span class="pos" id="navPos"></span>
+      <button class="btn" id="btnNext" type="button">Tiếp theo &#8250;</button>
+    </div>
+
+    <div class="row">
+      <label class="f">Giá thường trên tem (đ)
+        <input id="price" inputmode="numeric" autocomplete="off" placeholder="vd 25500">
+      </label>
+      <label class="f">Giá KM trên tem (đ, 0 nếu không có)
+        <input id="promo" inputmode="numeric" autocomplete="off" placeholder="0">
+      </label>
+    </div>
+    <div id="live" aria-live="polite"></div>
+    <div class="row">
+      <label class="f" style="flex:1 1 100%">Ghi chú (NOTE đối thủ: hết hàng, tem cũ, cửa hàng nào...)
+        <input id="note" autocomplete="off" placeholder="ghi chú nếu có">
+      </label>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btnSave" type="button">Lưu</button>
+      <button class="btn" id="btnNF" type="button">Không tìm thấy</button>
+    </div>
+    <div class="row">
+      <label class="btn" for="photoIn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Chụp ảnh (lưu về máy)
+      </label>
+      <button class="btn" id="btnReset" type="button">Xóa ô nhập</button>
+    </div>
+    <input id="photoIn" type="file" accept="image/*" capture="environment" hidden>
+    <img id="shot" class="shot" alt="Ảnh vừa chụp" hidden>
+    <div class="status" id="msg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-todo" id="todoBox" hidden>
+    <h2 id="h-todo">Cần check</h2>
+    <div class="row">
+      <button class="btn primary" id="tabMine" type="button">Cần check: <b id="nMine">0</b></button>
+      <button class="btn" id="tabPick" type="button">Chọn từ file</button>
+    </div>
+    <div id="mineView">
+      <div class="toolbar">
+        <span class="hint">Chạm vào sản phẩm để check hoặc sửa giá.</span>
+        <button class="btn small danger" id="btnMineClear" type="button">Bỏ hết</button>
+      </div>
+      <div class="list" id="todo"></div>
+    </div>
+    <div id="pickView" hidden>
+      <label class="f">Tìm (tên, barcode hoặc item code)
+        <input id="q" autocomplete="off" placeholder="vd sữa tươi, 8936...">
+      </label>
+      <div class="toolbar">
+        <span class="hint">Theo tháng đang chọn ở trên.</span>
+        <button class="btn small" id="btnAddDate" type="button">Chọn tất cả đang hiện</button>
+      </div>
+      <div class="list" id="pick"></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-list">
+    <h2 id="h-list">Đã ghi</h2>
+    <div class="toolbar">
+      <label class="f" style="flex:1 1 160px">Lọc
+        <select id="filter">
+          <option value="all">Tất cả</option>
+          <option value="diff">Chỉ lệch giá</option>
+          <option value="noref">Chưa có giá FJM</option>
+        </select>
+      </label>
+      <div class="row" style="flex:1 1 160px">
+        <button class="btn" id="btnExport" type="button">Xuất CSV (dán vào Price Check)</button>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="status" id="msg2" role="status"></div>
+  </section>
+
+  <details class="card" id="refBox">
+    <summary>Nạp file Price Check</summary>
+    <p class="hint">Chọn file Excel Price Check (chỉ để lấy danh sách sản phẩm và giá FJM, bạn chọn sản phẩm cần check ở mục Cần check). Tool tự tìm dòng tiêu đề (Barcode, Item Code, Item Name, Unit, DATE, FJM_Normal Selling Price, FJM_Promotion Selling Price) và ưu tiên sheet tên Price Check. File CSV đơn giản (Barcode, Tên, Giá) cũng đọc được.</p>
+    <div class="row">
+      <label class="btn" for="refFile">Chọn file Excel / CSV</label>
+      <button class="btn" id="btnSample" type="button">Dùng 3 sản phẩm mẫu</button>
+      <button class="btn danger" id="btnRefClear" type="button">Xóa dữ liệu file</button>
+    </div>
+    <input id="refFile" type="file" accept=".xlsx,.xls,.csv,.txt" hidden>
+    <div class="status" id="msg3" role="status"></div>
+    <p class="hint">Danh sách sản phẩm và giá đã ghi lưu trong trình duyệt của máy này. Nhớ Xuất CSV sau mỗi buổi. Sao lưu JSON để chuyển dữ liệu sang máy khác hoặc gộp dữ liệu nhiều người.</p>
+    <div class="row">
+      <button class="btn" id="btnJsonOut" type="button">Sao lưu giá (JSON)</button>
+      <label class="btn" for="jsonIn">Gộp từ file JSON</label>
+    </div>
+    <input id="jsonIn" type="file" accept=".json,application/json" hidden>
+    <div class="status" id="msg4" role="status"></div>
+  </details>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var LS = {
+    get: function(k, d){ try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set: function(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+  };
+  var COMPS = [
+    { k:'aeon',  n:'AEON',        idx:'AEON',   note:'NOTE AEON' },
+    { k:'wm',    n:'WM',          idx:'WM',     note:'NOTE WM' },
+    { k:'lotte', n:'Lotte',       idx:'LT',     note:'NOTE Lotte' },
+    { k:'mm',    n:'Mega Market', idx:'MM',     note:'NOTE Mega Market' },
+    { k:'bigc',  n:'Big C',       idx:'Big C',  note:'NOTE Big C' }
+  ];
+  var compBy = {}; COMPS.forEach(function(c){ compBy[c.k] = c; });
+
+  // list: các dòng sản phẩm trong file Price Check { c: barcode, ic: item code, n: tên, u: đơn vị, d: ngày yyyy-mm-dd, np: giá thường FJM, pp: giá KM FJM }
+  var list = LS.get('cg2_list', []);
+  var checks = {};          // id -> bản ghi giá đối thủ
+  var dbc = null;           // collection 'checks' của dữ liệu chung (null = dùng bộ nhớ máy)
+  var myId = '';
+  var names = {};
+  var byBar = {}, byIc = {};
+  var found = null, editingId = null;
+  var shown = 100, pendingDel = null;
+
+  function norm(s){ return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/\s+/g,' ').trim(); }
+  function codeKey(s){ return String(s == null ? '' : s).replace(/\D/g,'').replace(/^0+/,''); }
+  function parsePrice(s){ var d = String(s == null ? '' : s).replace(/[^\d]/g,''); return d === '' ? NaN : parseInt(d, 10); }
+  function fmt(n){ return Number(n).toLocaleString('vi-VN') + ' đ'; }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function say(el, text, kind){ el.textContent = text || ''; el.className = 'status' + (kind ? ' ' + kind : ''); }
+  function dmy(iso){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || ''); }
+  function p2(n){ return String(n).padStart(2,'0'); }
+  function todayIso(){ var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth()+1) + '-' + p2(d.getDate()); }
+  function pct(a, b){ return (a > 0 && b > 0) ? Math.round(a / b * 1000) / 10 : null; }
+
+  var curMonth = '';
+  function inMonth(r){ return !curMonth || (r.d || '').slice(0,7) === curMonth; }
+  function rowLd(r){ return r.d || todayIso(); }
+  function months(){ var set = {}; list.forEach(function(r){ if (r.d) set[r.d.slice(0,7)] = 1; }); return Object.keys(set).sort(); }
+  function buildIndex(){
+    byBar = {}; byIc = {};
+    list.filter(inMonth).forEach(function(r){
+      var k = codeKey(r.c); if (k) byBar[k] = r;
+      var k2 = codeKey(r.ic); if (k2) byIc[k2] = r;
+    });
+  }
+
+  // Giá thường đối thủ so với giá bán thường của FJM
+  function judge(price, fjm){
+    if (fjm == null || isNaN(fjm)) return { k:'noref', t:'Chưa có giá FJM', d:null };
+    var d = price - fjm;
+    if (d === 0) return { k:'ok', t:'Bằng giá FJM', d:0 };
+    return d < 0 ? { k:'hi', t:'Rẻ hơn FJM ' + fmt(-d), d:d } : { k:'lo', t:'Đắt hơn FJM ' + fmt(d), d:d };
+  }
+  function badge(j){ return '<span class="badge b-' + j.k + '">' + esc(j.t) + '</span>'; }
+
+  function listDateOf(r){ return r.listDate || (r.t ? r.t.slice(0,10) : todayIso()); }
+  function checkId(listDate, barcode, comp){
+    return (listDate || 'x').replace(/[^0-9A-Za-z]/g,'') + '_' + (codeKey(barcode) || 'x') + '_' + comp;
+  }
+
+  // ---- lưu trữ: bộ nhớ trình duyệt của máy này
+  function initStore(){
+    checks = LS.get('cg3_checks', {});
+    var e = $('sync'); e.textContent = 'Dữ liệu lưu trên máy này (trình duyệt). Nhớ Xuất CSV sau mỗi buổi đi thị trường.';
+  }
+  function resolveNames(){}
+  async function putCheck(id, data){ checks[id] = data; if (!LS.set('cg3_checks', checks)) throw new Error('Bộ nhớ trình duyệt đầy hoặc bị chặn. Hãy Xuất CSV ngay.'); }
+  async function delCheck(id){ delete checks[id]; LS.set('cg3_checks', checks); }
+  function saveList(){ if (!LS.set('cg2_list', list)) say($('msg3'), 'Bộ nhớ trình duyệt đầy hoặc bị chặn, không lưu được danh sách sản phẩm.', 'err'); }
+
+  // ---- hiển thị
+  function allChecks(){ return Object.keys(checks).map(function(k){ var r = checks[k]; r._id = k; return r; }); }
+  function counts(){
+    var cs = allChecks().filter(function(r){ return !r.nf; });
+    $('sRef').textContent = list.length.toLocaleString('vi-VN');
+    $('sRec').textContent = cs.length.toLocaleString('vi-VN');
+    var nd = 0;
+    cs.forEach(function(r){ var j = judge(r.normal, r.fjmN); if (j.k === 'hi' || j.k === 'lo') nd++; });
+    $('sDiff').textContent = nd.toLocaleString('vi-VN');
+  }
+  // danh sách cần check: chỉ những sản phẩm mình chọn (lưu theo barcode)
+  var watch = LS.get('cg4_watch', {});
+  var tab = 'mine';
+  function saveWatch(){ LS.set('cg4_watch', watch); }
+  function wkey(c){ return codeKey(c); }
+  function renderMonths(){
+    var ms = months(), sel = $('monthSel');
+    $('todoBox').hidden = list.length === 0 && !Object.keys(watch).length;
+    if (curMonth && ms.indexOf(curMonth) < 0) curMonth = '';
+    sel.innerHTML = '<option value="">Tất cả tháng</option>' + ms.map(function(m){ return '<option value="' + m + '">Tháng ' + m.slice(5) + '/' + m.slice(0,4) + '</option>'; }).join('');
+    sel.value = curMonth;
+  }
+  // trạng thái của một sản phẩm với đối thủ đang chọn: done / nf / todo
+  function statusOf(r, comp){
+    var c = checks[checkId(rowLd(r), r.c, comp)];
+    return !c ? 'todo' : (c.nf ? 'nf' : 'done');
+  }
+  // các sản phẩm đã chọn, trong tháng đang chọn, theo thứ tự trong file
+  function seq(){
+    var seen = {}, out = [];
+    list.filter(inMonth).forEach(function(r){
+      var k = wkey(r.c); if (!k || seen[k] || !watch[k]) return;
+      seen[k] = 1; out.push(byBar[k] || r);
+    });
+    return out;
+  }
+  function seqIndex(){ if (!found) return -1; var k = wkey(found.c), q = seq(); for (var i = 0; i < q.length; i++) if (wkey(q[i].c) === k) return i; return -1; }
+  function nextPending(from){
+    var q = seq(), comp = $('comp').value, n = q.length;
+    for (var i = 1; i <= n; i++){ var r = q[(from + i + n) % n]; if (r && statusOf(r, comp) === 'todo' && (from < 0 || wkey(r.c) !== wkey(q[from].c))) return r; }
+    return null;
+  }
+  function renderTodo(){
+    var comp = $('comp').value;
+    $('h-todo').textContent = 'Cần check ở ' + compBy[comp].n;
+    $('nMine').textContent = Object.keys(watch).length;
+    $('tabMine').className = 'btn' + (tab === 'mine' ? ' primary' : '');
+    $('tabPick').className = 'btn' + (tab === 'pick' ? ' primary' : '');
+    $('mineView').hidden = tab !== 'mine';
+    $('pickView').hidden = tab !== 'pick';
+    var q = seq(), c = { done:0, nf:0, todo:0 };
+    var rows = q.map(function(r, i){ var st = statusOf(r, comp); c[st]++; return { r: r, st: st, i: i }; });
+    $('cDone').textContent = c.done; $('cNf').textContent = c.nf; $('cTodo').textContent = c.todo;
+    var pos = seqIndex();
+    $('nav').hidden = !q.length;
+    $('navPos').textContent = q.length ? (pos >= 0 ? (pos + 1) + '/' + q.length : '-/' + q.length) : '';
+    if (tab === 'pick'){ renderPick(); return; }
+    var label = { done:'Đã check', nf:'Không thấy', todo:'Chưa check' }, cls = { done:'b-ok', nf:'b-nf', todo:'b-noref' };
+    $('todo').innerHTML = rows.map(function(x){
+      var r = x.r;
+      var meta = [r.c, r.u, r.np != null ? 'FJM ' + fmt(r.np) : ''].filter(Boolean).join(' · ');
+      return '<div class="todo' + (x.st === 'done' ? ' done' : '') + '"><button class="todo" style="padding:0;border:0" type="button" data-bar="' + esc(r.c) + '">' +
+        '<div><div class="t">' + esc(r.n || r.c) + '</div><div class="m">' + esc(meta) + '</div></div>' +
+        '<span class="badge ' + cls[x.st] + '">' + label[x.st] + '</span></button>' +
+        '<button class="btn small" type="button" data-unwatch="' + esc(wkey(r.c)) + '" aria-label="Bỏ khỏi danh sách">Bỏ</button></div>';
+    }).join('') || '<div class="empty">' + (Object.keys(watch).length ? 'Không có sản phẩm đã chọn nào trong tháng này.' : 'Chưa chọn sản phẩm nào. Bấm "Chọn từ file" để chọn những sản phẩm cần check.') + '</div>';
+  }
+  function pickRows(){
+    var q = norm($('q').value), seen = {}, rows = [];
+    list.filter(inMonth).forEach(function(r){
+      var k = wkey(r.c); if (!k || seen[k]) return;
+      if (q && (norm(r.n) + ' ' + r.c + ' ' + r.ic).indexOf(q) < 0) return;
+      seen[k] = 1; rows.push(r);
+    });
+    return rows;
+  }
+  function renderPick(){
+    var rows = pickRows(), total = rows.length;
+    $('pick').innerHTML = rows.slice(0, 100).map(function(r){
+      var on = !!watch[wkey(r.c)];
+      var meta = [r.c, r.u, r.np != null ? 'FJM ' + fmt(r.np) : ''].filter(Boolean).join(' · ');
+      return '<button class="todo' + (on ? ' done' : '') + '" type="button" data-pick="' + esc(r.c) + '">' +
+        '<div><div class="t" style="text-decoration:none">' + esc(r.n || r.c) + '</div><div class="m">' + esc(meta) + '</div></div>' +
+        '<span class="badge ' + (on ? 'b-ok' : 'b-noref') + '">' + (on ? 'Đã chọn' : 'Chọn') + '</span></button>';
+    }).join('') + (total > 100 ? '<div class="empty">Còn ' + (total - 100) + ' sản phẩm nữa, gõ từ khóa để lọc.</div>' : '') || '<div class="empty">Không tìm thấy sản phẩm nào.</div>';
+  }
+  function renderList(){
+    var f = $('filter').value;
+    var rows = allChecks().sort(function(a, b){ return String(b.t || '').localeCompare(String(a.t || '')); }).filter(function(r){
+      if (r.nf) return f === 'all';
+      var j = judge(r.normal, r.fjmN);
+      if (f === 'diff') return j.k === 'hi' || j.k === 'lo';
+      if (f === 'noref') return j.k === 'noref';
+      return true;
+    });
+    var box = $('list');
+    if (!rows.length){
+      box.innerHTML = '<div class="empty">' + (Object.keys(checks).length ? 'Không có dòng nào khớp bộ lọc.' : 'Chưa có giá nào được ghi. Chọn đối thủ, nhập mã vạch và giá ở trên rồi bấm Lưu giá.') + '</div>';
+      return;
+    }
+    var html = rows.slice(0, shown).map(function(r){
+      var j = r.nf ? { k:'nf', t:'Không thấy' } : judge(r.normal, r.fjmN);
+      var d = new Date(r.t);
+      var when = isNaN(d) ? '' : d.toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      var cn = compBy[r.comp] ? compBy[r.comp].n : r.comp;
+      var who = r.by ? (names[r.by] || '') : '';
+      var meta = [cn, r.barcode, when, who].filter(Boolean).join(' · ');
+      var ix = pct(r.fjmN, r.normal);
+      var extra = r.nf ? '' : ' · KM ' + fmt(r.promo || 0) + (r.fjmN != null ? ' · FJM ' + fmt(r.fjmN) : '') + (ix != null ? ' · index ' + ix + '%' : '');
+      var confirmDel = pendingDel === r._id;
+      return '<div class="rec">' +
+        '<div><div class="t">' + esc(r.name || 'Chưa có tên (mã ' + r.barcode + ')') + '</div><div class="m">' + esc(meta) + '</div></div>' +
+        '<div class="p">' + (r.nf ? '—' : fmt(r.normal)) + '</div>' +
+        '<div class="m" style="grid-column:1/-1">' + badge(j) + esc(extra) + (r.note ? ' · ' + esc(r.note) : '') + '</div>' +
+        '<div class="acts"><button class="btn small" data-act="edit" data-id="' + esc(r._id) + '" type="button">Sửa</button>' +
+        '<button class="btn small danger" data-act="del" data-id="' + esc(r._id) + '" type="button">' + (confirmDel ? 'Bấm lần nữa để xóa' : 'Xóa') + '</button></div>' +
+        '</div>';
+    }).join('');
+    if (rows.length > shown) html += '<div class="acts" style="padding-top:8px"><button class="btn small" data-act="more" type="button">Hiện thêm (' + (rows.length - shown) + ')</button></div>';
+    box.innerHTML = html;
+  }
+  function refresh(){ counts(); renderMonths(); renderTodo(); renderList(); }
+
+  // ---- tra sản phẩm theo mã vạch hoặc item code
+  function lookup(){
+    var raw = $('code').value, k = codeKey(raw);
+    found = k ? (byBar[k] || byIc[k] || null) : null;
+    var p = $('prod');
+    if (!k){ p.hidden = true; $('btnWatch').hidden = true; liveDiff(); return; }
+    p.hidden = false;
+    if (found){
+      $('pName').textContent = found.n || '(không có tên)';
+      $('pCode').textContent = found.c;
+      setImg(found.img);
+      $('pRef').textContent = found.np != null ? fmt(found.np) : '-';
+      $('pPromo').textContent = found.pp ? 'KM ' + fmt(found.pp) : '';
+      $('pTag').style.visibility = 'visible';
+      $('btnWatch').hidden = false; $('btnWatch').textContent = watch[wkey(found.c)] ? 'Bỏ khỏi danh sách cần check' : 'Thêm vào danh sách cần check';
+    } else {
+      $('btnWatch').hidden = true;
+      $('pName').textContent = list.length ? 'Mã này chưa có trong file Price Check' : 'Chưa nạp file Price Check';
+      $('pCode').textContent = raw.trim(); setImg('');
+      $('pRef').textContent = '-'; $('pPromo').textContent = '';
+      $('pTag').style.visibility = 'hidden';
+    }
+    liveDiff();
+  }
+  var IMG_PH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>';
+  function setImg(src){
+    var box = $('pImg'); box.innerHTML = IMG_PH;
+    if (!src || !/^https?:\/\//i.test(src)) return;
+    var im = new Image(); im.alt = ''; im.referrerPolicy = 'no-referrer';
+    im.style.cssText = 'width:100%;height:100%;object-fit:contain';
+    im.onload = function(){ box.innerHTML = ''; box.appendChild(im); };
+  im.src = src;
+  }
+  // điền sẵn giá đã ghi (để sửa); clearIfNone: xóa ô nếu chưa có bản ghi
+  function fillRec(clearIfNone){
+    var comp = $('comp').value, rec = found ? checks[checkId(rowLd(found), found.c, comp)] : null;
+    if (rec){
+      $('price').value = rec.nf ? '' : rec.normal; $('promo').value = rec.promo || ''; $('note').value = rec.note || '';
+      say($('msg'), rec.nf ? 'Sản phẩm này đã đánh dấu "Không thấy". Nhập giá và Lưu nếu đã tìm thấy.' : 'Đã có giá ghi trước đó. Sửa xong bấm Lưu để ghi đè.');
+    } else if (clearIfNone){ $('price').value = ''; $('promo').value = ''; $('note').value = ''; }
+    liveDiff();
+  }
+  function openItem(r){
+    editingId = null;
+    $('code').value = r.c; $('code').dataset.listDate = '';
+    lookup(); say($('msg'), ''); fillRec(true);
+    $('price').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function liveDiff(){
+    var s = parsePrice($('price').value), box = $('live');
+    if (isNaN(s) || !$('code').value.trim()){ box.innerHTML = ''; return; }
+    var ix = found ? pct(found.np, s) : null;
+    box.innerHTML = badge(judge(s, found ? found.np : null)) + (ix != null ? ' <span class="hint">index FJM/đối thủ ' + ix + '%</span>' : '');
+  }
+
+  // ---- đọc mã vạch từ ảnh chụp
+  async function toBlob(file, max){
+    var bmp = await createImageBitmap(file);
+    var s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    var c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return new Promise(function(r){ c.toBlob(r, 'image/jpeg', 0.92); });
+  }
+  async function decode(file){
+    if ('BarcodeDetector' in window){
+      try {
+        var det = new BarcodeDetector({ formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'] });
+        var bmp = await createImageBitmap(file);
+        var r = await det.detect(bmp);
+        if (r && r.length) return r[0].rawValue;
+      } catch(e){}
+    }
+    if (window.ZXing){
+      try {
+        var blob = await toBlob(file, 1600);
+        var url = URL.createObjectURL(blob);
+        var reader = new ZXing.BrowserMultiFormatReader();
+        var res = await reader.decodeFromImageUrl(url);
+        URL.revokeObjectURL(url);
+        if (res) return res.getText();
+      } catch(e){}
+    }
+    return null;
+  }
+  $('cam').addEventListener('change', async function(){
+    var f = $('cam').files && $('cam').files[0];
+    $('cam').value = '';
+    if (!f) return;
+    say($('msg'), 'Đang đọc mã vạch...');
+    var v = await decode(f);
+    if (v){
+      editingId = null; $('code').value = v; $('code').dataset.listDate = ''; lookup();
+      try { navigator.vibrate && navigator.vibrate(60); } catch(e){}
+      say($('msg'), 'Đã đọc mã ' + v + '. Nhập giá trên tem.', 'good');
+      $('price').focus();
+    } else {
+      say($('msg'), 'Không đọc được mã vạch. Chụp gần và thẳng hơn, hoặc gõ mã bằng tay.', 'err');
+    }
+  });
+
+  // ---- quét camera trực tiếp (ZXing) + đèn pin
+  var reader = null, scanning = false, lastV = '', cntV = 0, torchOn = false;
+  async function startScan(){
+    if (!window.ZXing){ say($('msg'), 'Thư viện quét chưa tải được (mạng yếu). Dùng Chụp mã vạch hoặc gõ mã.', 'err'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ say($('msg'), 'Trình duyệt này không mở được camera. Dùng Chụp mã vạch hoặc gõ mã.', 'err'); return; }
+    $('scanner').hidden = false; scanning = true; lastV = ''; cntV = 0; torchOn = false;
+    $('btnTorch').hidden = true; $('btnTorch').textContent = 'Bật đèn pin';
+    $('scanMsg').textContent = 'Đưa mã vạch nằm ngang vào khung xanh, đưa lại gần.';
+    try {
+      var hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.ITF]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      reader = new ZXing.BrowserMultiFormatReader(hints, 250);
+      await reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }, 'vid', function(result){
+        if (!scanning || !result) return;
+        var v = result.getText();
+        if (v === lastV) cntV++; else { lastV = v; cntV = 1; }
+        if (cntV >= 2) onScanned(v);   // đọc trùng 2 lần liên tiếp mới nhận, tránh đọc nhầm
+      });
+      var stream = $('vid').srcObject, tr = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
+      var caps = tr && tr.getCapabilities ? tr.getCapabilities() : {};
+      $('btnTorch').hidden = !caps.torch;
+    } catch(e){
+      stopScan();
+      say($('msg'), 'Không mở được camera (' + ((e && e.name) || 'lỗi') + '). Cho phép camera cho trang này, hoặc dùng Chụp mã vạch.', 'err');
+    }
+  }
+  function stopScan(){
+    scanning = false;
+    try { if (reader) reader.reset(); } catch(e){}
+    reader = null; $('scanner').hidden = true;
+  }
+  function onScanned(v){
+    stopScan();
+    editingId = null; $('code').value = v; $('code').dataset.listDate = ''; lookup();
+    try { navigator.vibrate && navigator.vibrate(60); } catch(e){}
+    say($('msg'), 'Đã quét mã ' + v + '. Nhập giá trên tem.', 'good');
+    $('price').focus();
+  }
+  $('btnScan').addEventListener('click', startScan);
+  $('btnScanClose').addEventListener('click', stopScan);
+  $('btnTorch').addEventListener('click', async function(){
+    try {
+      var stream = $('vid').srcObject, tr = stream.getVideoTracks()[0];
+      torchOn = !torchOn;
+      await tr.applyConstraints({ advanced: [{ torch: torchOn }] });
+      $('btnTorch').textContent = torchOn ? 'Tắt đèn pin' : 'Bật đèn pin';
+    } catch(e){ $('scanMsg').textContent = 'Máy này không bật được đèn pin.'; }
+  });
+  // ảnh chụp từ nút trong lúc đang quét
+  $('cam').addEventListener('click', function(){ if (scanning) stopScan(); });
+
+  // ---- lưu giá
+  function reset(){
+    editingId = null;
+    $('code').value = ''; $('code').dataset.listDate = '';
+    $('price').value = ''; $('promo').value = ''; $('note').value = '';
+    $('shot').hidden = true;
+    found = null; lookup(); $('code').focus();
+  }
+  async function save(nf){
+    var code = $('code').value.trim(), price = nf ? 0 : parsePrice($('price').value), promo = nf ? 0 : parsePrice($('promo').value);
+    if (!code){ say($('msg'), 'Nhập hoặc chụp mã vạch trước.', 'err'); $('code').focus(); return; }
+    if (!nf && (isNaN(price) || price < 0)){ say($('msg'), 'Nhập giá thường trên tem (số, đơn vị đồng). Hết hàng thì điền 0 và ghi chú.', 'err'); $('price').focus(); return; }
+    var comp = $('comp').value;
+    LS.set('cg3_comp', comp);
+    var barcode = found ? found.c : code;
+    var ld = $('code').dataset.listDate || (found ? rowLd(found) : todayIso());
+    var id = checkId(ld, barcode, comp);
+    var existed = !!checks[id];
+    var y = ld.slice(0,4), mo = ld.slice(5,7), dd = ld.slice(8,10);
+    var rec = {
+      barcode: barcode, itemCode: found ? found.ic : '', name: found ? found.n : '', unit: found ? found.u : '',
+      listDate: ld, year: y, month: mo, day: dd, comp: comp,
+      normal: price, promo: isNaN(promo) ? 0 : promo,
+      fjmN: found && found.np != null ? found.np : null, fjmP: found && found.pp != null ? found.pp : null,
+      note: $('note').value.trim(), by: myId, t: new Date().toISOString()
+    };
+    if (nf) rec.nf = true;
+    $('btnSave').disabled = true;
+    try {
+      await putCheck(id, rec);
+    } catch(e){
+      $('btnSave').disabled = false;
+      say($('msg'), 'Không lưu được: ' + ((e && e.message) || 'lỗi dữ liệu chung') + '. Thử lại.', 'err');
+      return;
+    }
+    $('btnSave').disabled = false;
+    pendingDel = null;
+    var j = nf ? { k:'nf', t:'Không thấy' } : judge(price, rec.fjmN);
+    var pos = seqIndex(), nxt = pos >= 0 ? null : null;
+    refresh();
+    nxt = pos >= 0 ? nextPending(pos) : null;
+    var base = (existed ? 'Đã cập nhật: ' : 'Đã lưu: ') + (rec.name || barcode) + ' · ' + compBy[comp].n + ' · ' + (nf ? 'Không thấy' : fmt(price) + ' · ' + j.t);
+    var kind = (!nf && (j.k === 'hi' || j.k === 'lo')) ? 'err' : 'good';
+    if (nxt){
+      openItem(nxt); window.scrollTo({ top: 0 });
+      say($('msg'), base + ' → chuyển sang: ' + (nxt.n || nxt.c) + ' (bấm Lùi lại để quay về)', kind);
+    } else {
+      reset(); refresh();
+      say($('msg'), base + (pos >= 0 ? ' · Đã check hết danh sách.' : ''), kind);
+    }
+  }
+  $('btnSave').addEventListener('click', function(){ save(false); });
+  $('btnNF').addEventListener('click', function(){ save(true); });
+  $('btnPrev').addEventListener('click', function(){ var q = seq(); if (!q.length) return; var i = seqIndex(); openItem(q[i < 0 ? q.length - 1 : (i - 1 + q.length) % q.length]); });
+  $('btnNext').addEventListener('click', function(){ var q = seq(); if (!q.length) return; var i = seqIndex(); openItem(q[i < 0 ? 0 : (i + 1) % q.length]); });
+  // chụp ảnh: lưu thẳng về máy (thư mục Tải xuống) với tên theo mã vạch
+  var shotUrl = '';
+  $('photoIn').addEventListener('change', async function(){
+    var f = $('photoIn').files && $('photoIn').files[0]; $('photoIn').value = '';
+    if (!f) return;
+    try {
+      var blob = await toBlob(f, 1600), d = new Date();
+      var code = (found ? found.c : $('code').value.trim()) || 'khong-ma';
+      var name = $('comp').value + '_' + code.replace(/\W/g,'') + '_' + d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds()) + '.jpg';
+      var a = document.createElement('a'); var u = URL.createObjectURL(blob);
+      a.href = u; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(function(){ a.remove(); }, 800);
+      if (shotUrl) URL.revokeObjectURL(shotUrl);
+      shotUrl = u; $('shot').src = u; $('shot').hidden = false;
+      say($('msg'), 'Đã lưu ảnh ' + name + ' vào máy (mục Tải xuống).', 'good');
+    } catch(e){ say($('msg'), 'Không lưu được ảnh: ' + ((e && e.message) || 'lỗi'), 'err'); }
+  });
+  $('btnReset').addEventListener('click', function(){ reset(); say($('msg'), ''); });
+  $('btnFind').addEventListener('click', lookup);
+  $('code').addEventListener('input', function(){ $('code').dataset.listDate = ''; lookup(); if (found) fillRec(false); renderTodo(); });
+  $('code').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); lookup(); $('price').focus(); } });
+  $('price').addEventListener('input', liveDiff);
+  $('price').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); $('promo').focus(); } });
+  $('promo').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); save(); } });
+  $('filter').addEventListener('change', function(){ shown = 100; renderList(); });
+  $('comp').addEventListener('change', function(){ LS.set('cg3_comp', $('comp').value); renderTodo(); if (found) fillRec(true); });
+  $('monthSel').addEventListener('change', function(){ curMonth = $('monthSel').value; LS.set('cg5_month', curMonth); buildIndex(); lookup(); refresh(); });
+  $('q').addEventListener('input', renderPick);
+  $('tabMine').addEventListener('click', function(){ tab = 'mine'; renderTodo(); });
+  $('tabPick').addEventListener('click', function(){ tab = 'pick'; renderTodo(); });
+  $('btnMineClear').addEventListener('click', function(){
+    if (!Object.keys(watch).length) return;
+    var b = $('btnMineClear');
+    if (b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Bấm lần nữa để bỏ hết'; setTimeout(function(){ b.dataset.sure = ''; b.textContent = 'Bỏ hết'; }, 4000); return; }
+    b.dataset.sure = ''; b.textContent = 'Bỏ hết'; watch = {}; saveWatch(); refresh(); lookup();
+  });
+  $('btnAddDate').addEventListener('click', function(){
+    var n = 0;
+    pickRows().forEach(function(r){ if (!watch[wkey(r.c)]){ watch[wkey(r.c)] = 1; n++; } });
+    saveWatch(); refresh();
+  });
+  $('pick').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-pick]'); if (!b) return;
+    var k = wkey(b.getAttribute('data-pick'));
+    if (watch[k]) delete watch[k]; else watch[k] = 1;
+    saveWatch(); renderTodo(); $('nMine').textContent = Object.keys(watch).length;
+  });
+  $('todo').addEventListener('click', function(e){
+    var u = e.target.closest('button[data-unwatch]');
+    if (u){ delete watch[u.getAttribute('data-unwatch')]; saveWatch(); refresh(); lookup(); return; }
+    var b = e.target.closest('button[data-bar]'); if (!b) return;
+    var r = byBar[wkey(b.getAttribute('data-bar'))]; if (r) openItem(r);
+  });
+  $('btnWatch').addEventListener('click', function(){
+    var k = found ? wkey(found.c) : codeKey($('code').value);
+    if (!k) return;
+    if (watch[k]) delete watch[k]; else watch[k] = 1;
+    saveWatch(); refresh(); lookup();
+  });
+
+  $('list').addEventListener('click', async function(e){
+    var b = e.target.closest('button[data-act]'); if (!b) return;
+    var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
+    if (act === 'more'){ shown += 100; renderList(); return; }
+    var r = checks[id];
+    if (!r) return;
+    if (act === 'del'){
+      if (pendingDel === id){
+        pendingDel = null;
+        try { await delCheck(id); } catch(err){ say($('msg2'), 'Không xóa được: ' + ((err && err.message) || ''), 'err'); }
+        refresh();
+      } else { pendingDel = id; renderList(); }
+    } else if (act === 'edit'){
+      $('comp').value = r.comp; LS.set('cg3_comp', r.comp);
+      $('code').value = r.barcode; $('code').dataset.listDate = r.listDate || '';
+      $('price').value = r.normal; $('promo').value = r.promo || ''; $('note').value = r.note || '';
+      lookup(); renderTodo();
+      say($('msg'), 'Đang sửa dòng này: sửa xong bấm Lưu giá (ghi đè dòng cũ).');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+  // ---- xuất CSV theo cột của sheet Price Check (mỗi sản phẩm một dòng, đủ 5 đối thủ)
+  function csvCell(v){ var s = String(v == null ? '' : v); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
+  $('btnExport').addEventListener('click', async function(){
+    var cs = allChecks();
+    if (!cs.length){ say($('msg2'), 'Chưa có dòng nào để xuất.', 'err'); return; }
+    var groups = {}, order = [];
+    cs.forEach(function(r){
+      var gk = (r.listDate || '') + '|' + codeKey(r.barcode);
+      if (!groups[gk]){ groups[gk] = { base: r, by: {} }; order.push(gk); }
+      groups[gk].by[r.comp] = r;
+    });
+    order.sort();
+    var head = ['YEAR','MONTH','DAY','DATE','Barcode','Item Code','Item Name'];
+    COMPS.forEach(function(c){
+      head.push(c.n + '_Normal Selling Price (+VAT)', c.n + '_Promotion Selling Price (+VAT)', '% index  Normal Price FJM vs ' + c.idx, '% index  Pro Price FJM vs ' + c.idx, c.note);
+    });
+    var lines = [head.map(csvCell).join(',')];
+    order.forEach(function(gk){
+      var g = groups[gk], b = g.base, ld = b.listDate || '';
+      var row = [ld.slice(0,4), ld.slice(5,7), ld.slice(8,10), ld ? dmy(ld) : '', '="' + b.barcode + '"', b.itemCode ? '="' + b.itemCode + '"' : '', b.name];
+      COMPS.forEach(function(c){
+        var r = g.by[c.k];
+        if (!r){ row.push('', '', '', '', ''); return; }
+        if (r.nf){ row.push('', '', '', '', 'Không thấy' + (r.note ? ' - ' + r.note : '')); return; }
+        var fN = r.fjmN, fP = r.fjmP;
+        var i1 = pct(fN, r.normal), i2 = pct(fP, r.promo);
+        row.push(r.normal, r.promo || 0, i1 == null ? '' : i1 + '%', i2 == null ? '' : i2 + '%', r.note || '');
+      });
+      lines.push(row.map(csvCell).join(','));
+    });
+    var d = new Date();
+    var name = 'check_gia_' + d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes()) + '.csv';
+    saveFile(name, '\ufeff' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+    say($('msg2'), 'Đã tạo file ' + name + ' (' + order.length + ' sản phẩm). Xem trong mục Tải xuống của máy.', 'good');
+  });
+
+  function saveFile(name, text, type){
+    var blob = new Blob([text], { type: type });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  }
+  $('btnJsonOut').addEventListener('click', function(){
+    var d = new Date();
+    saveFile('gia_da_ghi_' + d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate()) + '.json', JSON.stringify(checks), 'application/json');
+    say($('msg4'), 'Đã tạo file sao lưu ' + Object.keys(checks).length + ' giá.', 'good');
+  });
+  $('jsonIn').addEventListener('change', async function(){
+    var f = $('jsonIn').files && $('jsonIn').files[0]; $('jsonIn').value = '';
+    if (!f) return;
+    try {
+      var obj = JSON.parse(await f.text()), n = 0;
+      Object.keys(obj).forEach(function(k){
+        var r = obj[k]; if (!r || typeof r !== 'object' || r.normal == null) return;
+        if (!checks[k] || String(r.t || '') > String(checks[k].t || '')){ checks[k] = r; n++; }
+      });
+      LS.set('cg3_checks', checks); refresh();
+      say($('msg4'), 'Đã gộp ' + n + ' giá mới hoặc mới hơn từ file.', 'good');
+    } catch(e){ say($('msg4'), 'File JSON không hợp lệ.', 'err'); }
+  });
+
+  // ---- nạp file Price Check
+  function parseCSV(text){
+    var first = text.split(/\r?\n/)[0] || '';
+    var delim = (first.split('\t').length > 1) ? '\t' : (first.split(';').length > first.split(',').length ? ';' : ',');
+    return text.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; }).map(function(l){
+      var out = [], cur = '', q = false;
+      for (var i = 0; i < l.length; i++){
+        var ch = l[i];
+        if (q){ if (ch === '"'){ if (l[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += ch; }
+        else if (ch === '"') q = true;
+        else if (ch === delim){ out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+      out.push(cur); return out;
+    });
+  }
+  function cellText(v){ return (typeof v === 'number') ? String(Math.round(v)) : String(v == null ? '' : v).trim(); }
+  function priceCell(v){
+    if (typeof v === 'number') return isFinite(v) && v > 0 ? Math.round(v) : null;
+    var n = parsePrice(v); return isNaN(n) || n <= 0 ? null : n;
+  }
+  function dateCell(v){
+    if (typeof v === 'number' && v > 20000){
+      var d = new Date(Math.round((v - 25569) * 86400000));
+      return d.getUTCFullYear() + '-' + p2(d.getUTCMonth()+1) + '-' + p2(d.getUTCDate());
+    }
+    var s = String(v == null ? '' : v).trim();
+    var m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(s);
+    if (m) return m[3] + '-' + p2(m[2]) + '-' + p2(m[1]);
+    m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    return m ? m[1] + '-' + m[2] + '-' + m[3] : '';
+  }
+  async function importFile(file){
+    var rows;
+    try {
+      var buf = await file.arrayBuffer();
+      if (window.XLSX){
+        var wb = XLSX.read(buf, { type:'array' });
+        var sn = wb.SheetNames.filter(function(n){ return /price\s*check/i.test(n); })[0] || wb.SheetNames[0];
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header:1, raw:true, defval:'' });
+      } else if (/\.(csv|txt)$/i.test(file.name)){
+        rows = parseCSV(new TextDecoder('utf-8').decode(buf));
+      } else {
+        say($('msg3'), 'Thư viện đọc Excel chưa tải được (mạng yếu). Thử lại hoặc dùng file CSV.', 'err'); return;
+      }
+    } catch(e){ say($('msg3'), 'Không đọc được file: ' + ((e && e.message) || ''), 'err'); return; }
+    var hr = -1;
+    for (var i = 0; i < Math.min(rows.length, 30) && hr < 0; i++){
+      if (rows[i].some(function(c){ return /barcode|upc|ma vach/.test(norm(c)); })) hr = i;
+    }
+    if (hr < 0) hr = 0;
+    var h = rows[hr].map(norm);
+    function find(re, skip){ for (var j = 0; j < h.length; j++) if (re.test(h[j]) && (!skip || skip.indexOf(j) < 0)) return j; return -1; }
+    var ci = find(/barcode|upc|ma vach|ean/);
+    var ii = find(/item code|ma hang|ma sp|ma san pham/);
+    var ni = find(/item name|ten hang|ten san pham|^ten|name/);
+    var ui = find(/^unit|dvt|don vi/);
+    var di = find(/^date$|^ngay/);
+    var gi = find(/hinh anh|^image|^img|^anh$|photo|picture/);
+    var np = find(/(^|[^a-z])fjm.*normal\s*selling|normal\s*selling.*fjm|gia ban thuong/);
+    if (np < 0) np = find(/normal\s*selling/);
+    var pp = find(/(^|[^a-z])fjm.*promo\w*\s*selling|promo\w*\s*selling.*fjm|gia ban km|gia ban khuyen mai/);
+    if (pp < 0) pp = find(/promo\w*\s*selling/, [np]);
+    if (ci < 0) ci = 0;
+    if (np < 0){
+      np = find(/gia|price/, [ci, ni]);
+      if (np < 0) np = [0,1,2,3].filter(function(x){ return x !== ci && x !== ni && x !== ii; })[0];
+    }
+    if (ni < 0) ni = [0,1,2].filter(function(x){ return x !== ci && x !== np && x !== ii; })[0];
+    var out = [], bad = 0;
+    for (var r = hr + 1; r < rows.length; r++){
+      var row = rows[r], c = cellText(row[ci]);
+      if (!codeKey(c)){ bad++; continue; }
+      out.push({ c: c, ic: ii >= 0 ? cellText(row[ii]) : '', n: ni >= 0 ? cellText(row[ni]) : '', u: ui >= 0 ? cellText(row[ui]) : '',
+        img: gi >= 0 ? cellText(row[gi]) : '', d: di >= 0 ? dateCell(row[di]) : '', np: priceCell(row[np]), pp: pp >= 0 ? priceCell(row[pp]) : null });
+    }
+    if (!out.length){ say($('msg3'), 'Không tìm thấy dòng nào có Barcode. Kiểm tra dòng tiêu đề.', 'err'); return; }
+    list = out; saveList();
+    var ms2 = months(), t2 = todayIso().slice(0,7);
+    if (curMonth && ms2.indexOf(curMonth) < 0) curMonth = '';
+    if (!curMonth && ms2.length) curMonth = ms2.indexOf(t2) >= 0 ? t2 : ms2[ms2.length - 1];
+    buildIndex(); lookup(); refresh();
+    var okp = out.filter(function(x){ return x.np != null; }).length;
+    say($('msg3'), 'Đã nạp ' + out.length.toLocaleString('vi-VN') + ' dòng, ' + okp.toLocaleString('vi-VN') + ' dòng có giá bán FJM (dòng tiêu đề thứ ' + (hr + 1) + ').' + (bad ? ' Bỏ qua ' + bad + ' dòng thiếu mã.' : ''), 'good');
+    $('refBox').open = false;
+  }
+  $('refFile').addEventListener('change', function(){
+    var f = $('refFile').files && $('refFile').files[0]; $('refFile').value = '';
+    if (f) importFile(f);
+  });
+  $('btnSample').addEventListener('click', function(){
+    var t = todayIso();
+    list = [
+      { c:'8930000000011', ic:'2000000001', n:'Mẫu: Sữa tươi tiệt trùng 1L', u:'Hộp', d:t, np:32500, pp:null },
+      { c:'8930000000028', ic:'2000000002', n:'Mẫu: Bia lon 330ml', u:'Lon', d:t, np:17000, pp:15500 },
+      { c:'8930000000035', ic:'2000000003', n:'Mẫu: Nước ngọt chai 1.5L', u:'Chai', d:t, np:21000, pp:null }
+    ];
+    saveList(); buildIndex(); lookup(); refresh();
+    say($('msg3'), 'Đã nạp 3 sản phẩm mẫu. Bấm Chọn từ file để chọn sản phẩm cần check, hoặc gõ mã 8930000000011 để thử.', 'good');
+  });
+  $('btnRefClear').addEventListener('click', function(){
+    list = []; saveList(); buildIndex(); lookup(); refresh(); say($('msg3'), 'Đã xóa danh sách sản phẩm trên máy này (giá đã ghi vẫn còn).');
+  });
+
+  // ---- khởi động
+  $('comp').innerHTML = COMPS.map(function(c){ return '<option value="' + c.k + '">' + esc(c.n) + '</option>'; }).join('');
+  var savedComp = LS.get('cg3_comp', 'aeon');
+  $('comp').value = compBy[savedComp] ? savedComp : 'aeon';
+  (function(){
+    var ms = months(), t = todayIso().slice(0,7), sv = LS.get('cg5_month', null);
+    curMonth = sv === null ? (ms.indexOf(t) >= 0 ? t : (ms.length ? ms[ms.length - 1] : '')) : sv;
+  })();
+  buildIndex();
+  if (!list.length) $('refBox').open = true;
+  lookup(); refresh();
+  initStore(); refresh();
+})();
+</script>
+</body>
+</html>
