@@ -992,7 +992,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
           st.textContent = 'Dữ liệu: ' + list.length + ' sản phẩm từ ' + names[i] + '. Giá ghi lưu trên máy này, nhớ Xuất CSV sau mỗi buổi.';
           return;
         }
-        why.push(names[i] + ': ' + ($('msg3').textContent || 'không đọc được'));
+        why.push(names[i] + ': ' + ($('msg3').textContent || 'không đọc được') + ' [tải được ' + blob.size + ' byte; thư viện Excel: ' + (window.XLSX ? 'có' : 'KHÔNG tải được') + ']');
       } catch(e){ why.push(names[i] + ': ' + ((e && e.message) || 'lỗi')); }
     }
     st.textContent = (list.length ? 'KHÔNG nạp được dữ liệu mới, đang dùng danh sách cũ trong máy (' + list.length + ' sản phẩm). ' : 'Chưa có dữ liệu. ') + why.join(' | ');
