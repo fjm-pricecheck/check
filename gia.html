@@ -111,6 +111,7 @@ details.card[open]>summary{margin-bottom:4px}
 .nav .btn{flex:1}
 .nav .pos{font-size:13px;color:var(--muted);min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
 .shot{max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--line);align-self:flex-start}
+body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:not(.need){display:none!important}
 .badge.b-nf{background:var(--warn-bg);color:var(--warn)}
 </style>
 </head>
@@ -867,9 +868,9 @@ details.card[open]>summary{margin-bottom:4px}
       } else if (/\.(csv|txt)$/i.test(file.name)){
         rows = parseCSV(new TextDecoder('utf-8').decode(buf));
       } else {
-        say($('msg3'), 'Thư viện đọc Excel chưa tải được (mạng yếu). Thử lại hoặc dùng file CSV.', 'err'); return;
+        say($('msg3'), 'Thư viện đọc Excel chưa tải được (mạng yếu). Thử lại hoặc dùng file CSV.', 'err'); return false;
       }
-    } catch(e){ say($('msg3'), 'Không đọc được file: ' + ((e && e.message) || ''), 'err'); return; }
+    } catch(e){ say($('msg3'), 'Không đọc được file: ' + ((e && e.message) || ''), 'err'); return false; }
     var hr = -1;
     for (var i = 0; i < Math.min(rows.length, 30) && hr < 0; i++){
       if (rows[i].some(function(c){ return /barcode|upc|ma vach/.test(norm(c)); })) hr = i;
@@ -900,7 +901,7 @@ details.card[open]>summary{margin-bottom:4px}
       out.push({ c: c, ic: ii >= 0 ? cellText(row[ii]) : '', n: ni >= 0 ? cellText(row[ni]) : '', u: ui >= 0 ? cellText(row[ui]) : '',
         img: gi >= 0 ? cellText(row[gi]) : '', d: di >= 0 ? dateCell(row[di]) : '', np: priceCell(row[np]), pp: pp >= 0 ? priceCell(row[pp]) : null });
     }
-    if (!out.length){ say($('msg3'), 'Không tìm thấy dòng nào có Barcode. Kiểm tra dòng tiêu đề.', 'err'); return; }
+    if (!out.length){ say($('msg3'), 'Không tìm thấy dòng nào có Barcode. Kiểm tra dòng tiêu đề.', 'err'); return false; }
     list = out; saveList();
     var ms2 = months(), t2 = todayIso().slice(0,7);
     if (curMonth && ms2.indexOf(curMonth) < 0) curMonth = '';
@@ -909,6 +910,7 @@ details.card[open]>summary{margin-bottom:4px}
     var okp = out.filter(function(x){ return x.np != null; }).length;
     say($('msg3'), 'Đã nạp ' + out.length.toLocaleString('vi-VN') + ' dòng, ' + okp.toLocaleString('vi-VN') + ' dòng có giá bán FJM (dòng tiêu đề thứ ' + (hr + 1) + ').' + (bad ? ' Bỏ qua ' + bad + ' dòng thiếu mã.' : ''), 'good');
     $('refBox').open = false;
+    return true;
   }
   $('refFile').addEventListener('change', function(){
     var f = $('refFile').files && $('refFile').files[0]; $('refFile').value = '';
@@ -940,6 +942,30 @@ details.card[open]>summary{margin-bottom:4px}
   if (!list.length) $('refBox').open = true;
   lookup(); refresh();
   initStore(); refresh();
+
+  // ---- dữ liệu có sẵn trong repo: data.xlsx (hoặc data.csv) cùng thư mục với trang này
+  if (/[?&]admin=1/.test(location.search)) document.body.classList.add('admin');
+  function applyPreset(){
+    watch = {};
+    list.forEach(function(r){ var k = wkey(r.c); if (k) watch[k] = 1; });
+    $('refBox').classList.remove('need'); $('refBox').open = false;
+    buildIndex(); lookup(); refresh();
+  }
+  async function loadPreset(){
+    var names = ['data.xlsx', 'data.csv'];
+    for (var i = 0; i < names.length; i++){
+      try {
+        var r = await fetch(names[i] + '?v=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) continue;
+        var blob = await r.blob();
+        var ok = await importFile(new File([blob], names[i]));
+        if (ok){ LS.set('cg5_pre', 1); applyPreset(); say($('msg3'), 'Đã nạp ' + list.length + ' sản phẩm từ ' + names[i] + ' trong repo.', 'good'); return; }
+      } catch(e){}
+    }
+    if (!list.length) $('refBox').classList.add('need');
+  }
+  if (LS.get('cg5_pre', 0) && list.length) applyPreset();
+  loadPreset();
 })();
 </script>
 </body>
