@@ -113,7 +113,7 @@ details.card[open]>summary{margin-bottom:4px}
 .nav .btn{flex:1}
 .nav .pos{font-size:13px;color:var(--muted);min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
 .shot{max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--line);align-self:flex-start}
-body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:not(.need){display:none!important}
+body:not(.admin) .sub,body:not(.admin) #pTag,body:not(.admin) #btnPull,body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:not(.need){display:none!important}
 .prod{height:176px;overflow:hidden;align-content:space-between}
 .prod .nm{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
 .pbar{font-size:20px;white-space:normal;overflow-wrap:anywhere;line-height:1.15}
@@ -123,6 +123,52 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .pair input{height:48px}
 .badge.b-nf{background:var(--warn-bg);color:var(--warn)}
+
+/* ===== gọn màn hình ===== */
+body{padding-block:8px 28px}
+.wrap{gap:8px}
+h1{font-size:20px}
+.stat{margin-top:4px;gap:12px;font-size:13px}
+.card{padding:10px;gap:8px}
+.card>h2{display:none}
+.row.two{gap:8px}
+label.f{gap:2px;font-size:12px}
+input,select,textarea{padding:8px 10px}
+select{height:40px}
+.counter{gap:6px}
+.counter button{font:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 4px 5px;text-align:center;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0;min-width:0}
+.counter button span{font-size:11px;letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
+.counter b{font-size:20px;line-height:1.05}
+.counter .c-td b{color:var(--ink)}
+.counter button.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.fview{border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:6px 10px}
+.fhead{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--muted);padding-bottom:4px}
+#fList{max-height:38vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.frow{display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;border-top:1px solid var(--line);padding:7px 0;cursor:pointer}
+.frow:first-child{border-top:0}
+.frow .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.frow .m{font-size:12px;color:var(--muted)}
+.frow .p{font-family:var(--f-display);font-weight:700;font-size:16px;text-align:right;font-variant-numeric:tabular-nums}
+.frow .p small{display:block;font-family:var(--f-body);font-weight:500;font-size:11px;color:var(--muted)}
+.prod{height:auto;min-height:0;padding:8px 10px}
+body.admin .prod{height:176px}
+body:not(.admin) .prod .nm{min-height:0}
+.pbar{font-size:18px}
+.nav .btn{padding:8px 10px}
+.pair{gap:8px}.pair input{height:44px}
+#live{min-height:18px}
+#msg{height:auto;min-height:20px;max-height:58px;font-size:13px}
+.noterow{display:flex;gap:8px;align-items:stretch}
+.noterow input{flex:1 1 auto}
+.noterow .btn{flex:0 0 52px;padding:0}
+.actrow{display:flex;gap:8px}
+.actrow .btn{padding:11px 8px;flex:1 1 0}
+.actrow #btnSave{flex:1.1 1 0}
+.actrow #btnNF{flex:1.5 1 0}
+.actrow #btnReset{flex:.8 1 0}
+body:not(.sync) #whoBox{display:none}
+body:not(.admin) .stat{display:none}
+body:not(.admin) .stat,body:not(.admin) #live{display:none}
 </style>
 </head>
 <body>
@@ -130,13 +176,17 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
 <div class="wrap">
   <header>
     <h1>Check Giá Thị Trường</h1>
-    <p class="sub">Quét mã vạch ở kệ đối thủ, ghi giá thường và giá KM trên tem, so với giá bán FJM.</p>
+    <p class="sub" id="subline">Quét mã vạch ở kệ đối thủ, ghi giá thường và giá KM trên tem, so với giá bán FJM.</p>
     <div class="stat"><span>Sản phẩm trong file: <b id="sRef">0</b></span><span>Đã ghi: <b id="sRec">0</b></span><span>Lệch giá: <b id="sDiff">0</b></span></div>
     <p class="hint" id="sync" style="margin-top:6px"></p>
+    <p class="hint" id="syncState" style="margin-top:2px" hidden></p>
   </header>
 
   <section class="card" aria-labelledby="h-scan">
     <h2 id="h-scan">Check giá</h2>
+    <label class="f" id="whoBox">Tên bạn (để biết ai check)
+      <input id="who" autocomplete="name" placeholder="vd Lan">
+    </label>
     <div class="row">
       <label class="f">Tháng
         <select id="monthSel"></select>
@@ -146,9 +196,13 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
       </label>
     </div>
     <div class="counter" aria-live="polite">
-      <div class="c-ok"><b id="cDone">0</b>Đã check</div>
-      <div class="c-nf"><b id="cNf">0</b>Không thấy</div>
-      <div><b id="cTodo">0</b>Chưa check</div>
+      <button type="button" class="c-ok" data-f="done"><b id="cDone">0</b><span>Đã check</span></button>
+      <button type="button" class="c-nf" data-f="nf"><b id="cNf">0</b><span>Không thấy</span></button>
+      <button type="button" class="c-td" data-f="todo"><b id="cTodo">0</b><span>Chưa check</span></button>
+    </div>
+    <div id="fview" class="fview" hidden>
+      <div class="fhead"><span id="fTitle"></span><button type="button" class="btn small" id="fClose">Đóng</button></div>
+      <div class="list" id="fList"></div>
     </div>
     <label class="f" id="codeBox">Mã vạch (Barcode) hoặc Item Code
       <input id="code" class="code-in" inputmode="numeric" autocomplete="off" placeholder="Quét hoặc gõ mã">
@@ -188,26 +242,20 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
         <input id="price" inputmode="numeric" autocomplete="off" placeholder="vd 25500">
       </label>
       <label class="f">Giá KM (đ)
-        <input id="promo" inputmode="numeric" autocomplete="off" placeholder="0">
+        <input id="promo" inputmode="numeric" autocomplete="off" placeholder="0 nếu không có">
       </label>
     </div>
-    <p class="hint" style="margin:-4px 0 0">Không có giá KM thì để 0.</p>
     <div id="live" aria-live="polite"></div>
-    <div class="row">
-      <label class="f" style="flex:1 1 100%">Ghi chú (NOTE đối thủ: hết hàng, tem cũ, cửa hàng nào...)
-        <input id="note" autocomplete="off" placeholder="ghi chú nếu có">
+    <div class="noterow">
+      <input id="note" aria-label="Ghi chú" autocomplete="off" placeholder="Ghi chú: hết hàng, tem cũ, cửa hàng nào...">
+      <label class="btn" for="photoIn" aria-label="Chụp ảnh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
       </label>
     </div>
-    <div class="row">
+    <div class="actrow">
       <button class="btn primary" id="btnSave" type="button">Lưu</button>
       <button class="btn" id="btnNF" type="button">Không tìm thấy</button>
-    </div>
-    <div class="row">
-      <label class="btn" for="photoIn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-        Chụp ảnh
-      </label>
-      <button class="btn" id="btnReset" type="button">Xóa ô nhập</button>
+      <button class="btn" id="btnReset" type="button" aria-label="Xóa ô nhập">Xóa ô</button>
     </div>
     <input id="photoIn" type="file" accept="image/*" capture="environment" hidden>
     <div id="shotRow" class="row" hidden style="align-items:center">
@@ -254,6 +302,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
       </label>
       <div class="row" style="flex:1 1 160px">
         <button class="btn" id="btnExport" type="button">Xuất CSV (dán vào Price Check)</button>
+        <button class="btn" id="btnPull" type="button">Tải dữ liệu tổng hợp</button>
       </div>
     </div>
     <div class="list" id="list"></div>
@@ -351,9 +400,85 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
     var e = $('sync'); e.textContent = 'Dữ liệu lưu trên máy này (trình duyệt). Nhớ Xuất CSV sau mỗi buổi đi thị trường.';
   }
   function resolveNames(){}
-  async function putCheck(id, data){ checks[id] = data; if (!LS.set('cg3_checks', checks)) throw new Error('Bộ nhớ trình duyệt đầy hoặc bị chặn. Hãy Xuất CSV ngay.'); }
-  async function delCheck(id){ delete checks[id]; LS.set('cg3_checks', checks); }
+  async function putCheck(id, data){ checks[id] = data; if (!LS.set('cg3_checks', checks)) throw new Error('Bộ nhớ trình duyệt đầy hoặc bị chặn. Hãy Xuất CSV ngay.'); queueSync(id, 'put'); }
+  async function delCheck(id){ delete checks[id]; LS.set('cg3_checks', checks); queueSync(id, 'del'); }
   function saveList(){ if (!LS.set('cg2_list', list)) say($('msg3'), 'Bộ nhớ trình duyệt đầy hoặc bị chặn, không lưu được danh sách sản phẩm.', 'err'); }
+
+  // ---- đồng bộ về Google Sheet tổng hợp (cấu hình trong config.json: { "sync": "<link Apps Script>", "key": "<mật khẩu>" })
+  var sync = { url: '', key: '' }, outbox = LS.get('cg6_out', {}), syncErr = '', flushing = false;
+  function renderSync(){
+    var el = $('syncState');
+    if (!sync.url){ el.hidden = true; return; }
+    var n = Object.keys(outbox).length;
+    el.hidden = false;
+    el.textContent = 'Tổng hợp: ' + (n ? 'còn ' + n + ' bản ghi chờ gửi' : 'đã gửi hết') + (syncErr ? ' · lỗi gửi: ' + syncErr : '');
+    el.style.color = syncErr ? 'var(--bad)' : '';
+  }
+  function queueSync(id, op){ outbox[id] = op; LS.set('cg6_out', outbox); flushSync(); }
+  async function flushSync(){
+    if (!sync.url || flushing) return;
+    var ids = Object.keys(outbox);
+    if (!ids.length){ renderSync(); return; }
+    flushing = true;
+    try {
+      while (ids.length){
+        var batch = ids.splice(0, 15);
+        var items = batch.map(function(id){
+          var r = checks[id];
+          if (outbox[id] === 'del' || !r) return { op: 'del', id: id };
+          var o = {}; Object.keys(r).forEach(function(k){ if (k !== '_id') o[k] = r[k]; }); o.id = id;
+          return { op: 'put', rec: o };
+        });
+        var res = await fetch(sync.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: sync.key, items: items }) });
+        var j = await res.json();
+        if (!j || !j.ok) throw new Error((j && j.error) || 'máy chủ từ chối');
+        batch.forEach(function(id){ delete outbox[id]; });
+        LS.set('cg6_out', outbox);
+      }
+      syncErr = '';
+    } catch(e){ syncErr = (e && e.message) || 'không có mạng'; }
+    flushing = false; renderSync();
+  }
+  function normRow(o){
+    var r = {}; Object.keys(o).forEach(function(k){ if (k !== 'id') r[k] = o[k]; });
+    ['normal','promo'].forEach(function(k){ r[k] = Number(r[k]) || 0; });
+    ['fjmN','fjmP'].forEach(function(k){ r[k] = (r[k] === '' || r[k] == null) ? null : Number(r[k]); });
+    ['nf','noBar'].forEach(function(k){ r[k] = (r[k] === true || r[k] === 'TRUE' || r[k] === 'true'); });
+    ['barcode','itemCode','listDate','month','year','day','comp','name','unit','note','by','t'].forEach(function(k){ r[k] = r[k] == null ? '' : String(r[k]); });
+    return r;
+  }
+  async function pullSync(){
+    if (!sync.url){ say($('msg2'), 'Chưa kết nối tổng hợp (thiếu config.json).', 'err'); return; }
+    say($('msg2'), 'Đang tải dữ liệu tổng hợp...');
+    try {
+      var res = await fetch(sync.url + '?action=all&key=' + encodeURIComponent(sync.key));
+      var j = await res.json();
+      if (!j || !j.ok) throw new Error((j && j.error) || 'máy chủ từ chối');
+      var n = 0;
+      (j.rows || []).forEach(function(o){
+        var id = String(o.id || ''); if (!id) return;
+        var r = normRow(o);
+        if (!checks[id] || String(r.t) > String(checks[id].t || '')){ checks[id] = r; n++; }
+      });
+      LS.set('cg3_checks', checks); refresh();
+      say($('msg2'), 'Đã tải ' + (j.rows || []).length + ' bản ghi tổng hợp, ' + n + ' bản mới hoặc mới hơn máy này.', 'good');
+    } catch(e){ say($('msg2'), 'Không tải được dữ liệu tổng hợp: ' + ((e && e.message) || 'lỗi mạng'), 'err'); }
+  }
+  $('btnPull').addEventListener('click', pullSync);
+  $('who').value = LS.get('cg6_name', '');
+  $('who').addEventListener('change', function(){ LS.set('cg6_name', $('who').value.trim()); });
+  async function loadSyncConfig(){
+    try {
+      var r = await fetch('config.json?v=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      var c = await r.json();
+      if (c && c.sync){ sync.url = String(c.sync); sync.key = String(c.key || ''); if (sync.url) document.body.classList.add('sync'); }
+    } catch(e){}
+    renderSync(); flushSync();
+    if (sync.url && document.body.classList.contains('admin')) pullSync();
+  }
+  window.addEventListener('online', flushSync);
+  setInterval(flushSync, 60000);
 
   // ---- hiển thị
   function allChecks(){ return Object.keys(checks).map(function(k){ var r = checks[k]; r._id = k; return r; }); }
@@ -405,6 +530,20 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
     for (var i = 1; i <= n; i++){ var r = q[(from + i + n) % n]; if (r && statusOf(r, comp) === 'todo' && (from < 0 || wkey(r.c) !== wkey(q[from].c))) return r; }
     return null;
   }
+  var fsel = '';
+  function renderF(rows, comp){
+    var btns = document.querySelectorAll('.counter button');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', btns[i].getAttribute('data-f') === fsel);
+    var box = $('fview'); box.hidden = !fsel; if (!fsel) return;
+    var titles = { done:'Đã check', nf:'Không thấy', todo:'Chưa check' };
+    var sel = rows.filter(function(x){ return x.st === fsel; });
+    $('fTitle').textContent = titles[fsel] + ' · ' + sel.length + ' sản phẩm (chạm để mở)';
+    $('fList').innerHTML = sel.map(function(x){
+      var r = x.r, rec = checks[checkId(rowLd(r), r.c, comp)], right = '';
+      if (fsel === 'done' && rec) right = '<div class="p">' + fmt(rec.normal) + '<small>KM ' + fmt(rec.promo || 0) + '</small></div>';
+      return '<button type="button" class="frow" data-bar="' + esc(r.c) + '"><div style="min-width:0"><div class="t">' + esc(r.n || r.c) + '</div><div class="m">' + esc(r.c) + (rec && rec.note ? ' · ' + esc(rec.note) : '') + '</div></div>' + right + '</button>';
+    }).join('') || '<div class="empty">Không có sản phẩm nào.</div>';
+  }
   function renderTodo(){
     var comp = $('comp').value;
     $('h-todo').textContent = 'Cần check ở ' + compBy[comp].n;
@@ -416,6 +555,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
     var q = seq(), c = { done:0, nf:0, todo:0 };
     var rows = q.map(function(r, i){ var st = statusOf(r, comp); c[st]++; return { r: r, st: st, i: i }; });
     $('cDone').textContent = c.done; $('cNf').textContent = c.nf; $('cTodo').textContent = c.todo;
+    renderF(rows, comp);
     var pos = seqIndex();
     $('nav').hidden = !q.length;
     $('navPos').textContent = q.length ? (pos >= 0 ? (pos + 1) + '/' + q.length : '-/' + q.length) : '';
@@ -468,7 +608,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
       var d = new Date(r.t);
       var when = isNaN(d) ? '' : d.toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
       var cn = compBy[r.comp] ? compBy[r.comp].n : r.comp;
-      var who = r.by ? (names[r.by] || '') : '';
+      var who = r.by || '';
       var meta = [cn, r.barcode, when, who].filter(Boolean).join(' · ');
       var ix = pct(r.fjmN, r.normal);
       var extra = r.nf ? '' : ' · KM ' + fmt(r.promo || 0) + (r.fjmN != null ? ' · FJM ' + fmt(r.fjmN) : '') + (ix != null ? ' · index ' + ix + '%' : '');
@@ -522,7 +662,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
     editingId = null;
     $('code').value = r.c; $('code').dataset.listDate = '';
     lookup(); say($('msg'), ''); fillRec(true); renderTodo();
-    if (!noFocus){ try { $('price').focus({ preventScroll: true }); } catch(e){ $('price').focus(); } }
+    try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch(e){}   // không tự bật bàn phím
     if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function liveDiff(){
@@ -595,7 +735,8 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
     if (!code){ say($('msg'), 'Nhập hoặc chụp mã vạch trước.', 'err'); $('code').focus(); return; }
     if (!nf && (isNaN(price) || price < 0)){ say($('msg'), 'Nhập giá thường trên tem (số, đơn vị đồng). Hết hàng thì điền 0 và ghi chú.', 'err'); $('price').focus(); return; }
     var comp = $('comp').value;
-    LS.set('cg3_comp', comp);
+    if (sync.url && !$('who').value.trim()){ say($('msg'), 'Nhập tên bạn ở đầu trang trước khi lưu.', 'err'); $('who').focus(); return; }
+    LS.set('cg3_comp', comp); LS.set('cg6_name', $('who').value.trim());
     var barcode = found ? found.c : code;
     var ld = $('code').dataset.listDate || (found ? rowLd(found) : todayIso());
     var id = checkId(ld, barcode, comp);
@@ -606,7 +747,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
       listDate: ld, year: y, month: mo, day: dd, comp: comp,
       normal: price, promo: isNaN(promo) ? 0 : promo,
       fjmN: found && found.np != null ? found.np : null, fjmP: found && found.pp != null ? found.pp : null,
-      note: $('note').value.trim(), by: myId, t: new Date().toISOString()
+      note: $('note').value.trim(), by: $('who').value.trim(), t: new Date().toISOString()
     };
     if (nf) rec.nf = true;
     $('btnSave').disabled = true;
@@ -667,7 +808,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
   $('promo').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); save(); } });
   $('filter').addEventListener('change', function(){ shown = 100; renderList(); });
   $('comp').addEventListener('change', function(){ LS.set('cg3_comp', $('comp').value); renderTodo(); if (found) fillRec(true); });
-  $('monthSel').addEventListener('change', function(){ curMonth = $('monthSel').value; LS.set('cg5_month', curMonth); buildIndex(); lookup(); refresh(); if (!found) autoOpen(); });
+  $('monthSel').addEventListener('change', function(){ curMonth = $('monthSel').value; LS.set('cg5_month', curMonth); if ($('sync').dataset.preset) setNote(); buildIndex(); lookup(); refresh(); if (!found) autoOpen(); });
   $('q').addEventListener('input', renderPick);
   $('tabMine').addEventListener('click', function(){ tab = 'mine'; renderTodo(); });
   $('tabPick').addEventListener('click', function(){ tab = 'pick'; renderTodo(); });
@@ -687,6 +828,15 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
     var k = wkey(b.getAttribute('data-pick'));
     if (watch[k]) delete watch[k]; else watch[k] = 1;
     saveWatch(); renderTodo(); $('nMine').textContent = Object.keys(watch).length;
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.counter button'), function(b){
+    b.addEventListener('click', function(){ var f = b.getAttribute('data-f'); fsel = (fsel === f) ? '' : f; renderTodo(); });
+  });
+  $('fClose').addEventListener('click', function(){ fsel = ''; renderTodo(); });
+  $('fList').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-bar]'); if (!b) return;
+    var r = byBar[wkey(b.getAttribute('data-bar'))]; if (!r) return;
+    fsel = ''; openItem(r, true);
   });
   $('todo').addEventListener('click', function(e){
     var u = e.target.closest('button[data-unwatch]');
@@ -928,6 +1078,11 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
     $('refBox').classList.remove('need'); $('refBox').open = false;
     buildIndex(); lookup(); refresh(); autoOpen();
   }
+  function setNote(){
+    var e = $('sync'); if (!e) return;
+    var m = (typeof curMonth === 'string' && /^\d{4}-\d{2}$/.test(curMonth)) ? ' tháng ' + curMonth.slice(5) + '/' + curMonth.slice(0,4) : '';
+    e.innerHTML = 'Dữ liệu: ' + list.length + ' sản phẩm check giá' + m + '.<br>Chú ý lưu khi check giá từng sản phẩm. Sản phẩm nào không có thì chọn "Không tìm thấy".';
+  }
   async function loadPreset(){
     var names = ['data.xlsx', 'data.csv'], why = [];
     var st = $('sync');
@@ -940,7 +1095,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
         if (ok){
           LS.set('cg5_pre', 1); applyPreset();
           say($('msg3'), 'Đã nạp ' + list.length + ' sản phẩm từ ' + names[i] + ' trong repo (sheet ' + sheetUsed + ').', 'good');
-          st.textContent = 'Dữ liệu: ' + list.length + ' sản phẩm từ ' + names[i] + '. Giá ghi lưu trên máy này, nhớ Xuất CSV sau mỗi buổi.';
+          $('sync').dataset.preset = '1'; setNote();
           return;
         }
         why.push(names[i] + ': ' + ($('msg3').textContent || 'không đọc được') + ' [tải được ' + blob.size + ' byte; thư viện Excel: ' + (window.XLSX ? 'có' : 'KHÔNG tải được') + ']');
@@ -952,6 +1107,7 @@ body:not(.admin) #codeBox,body:not(.admin) #scanRow,body:not(.admin) #todoBox,bo
   }
   if (LS.get('cg5_pre', 0) && list.length) applyPreset();
   loadPreset();
+  loadSyncConfig();
 })();
 </script>
 </body>
