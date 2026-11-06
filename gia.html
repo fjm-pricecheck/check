@@ -482,7 +482,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     if (found){
       $('pName').textContent = found.n || '(không có tên)';
       $('pCode').textContent = found.c;
-      setImg(found.img);
+      setImg(found.img, found.c);
       $('pRef').textContent = found.np != null ? fmt(found.np) : '-';
       $('pPromo').textContent = found.pp ? 'KM ' + fmt(found.pp) : '';
       $('pTag').style.visibility = 'visible';
@@ -490,21 +490,31 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     } else {
       $('btnWatch').hidden = true;
       $('pName').textContent = list.length ? 'Mã này chưa có trong file Price Check' : 'Chưa nạp file Price Check';
-      $('pCode').textContent = raw.trim(); setImg('');
+      $('pCode').textContent = raw.trim(); setImg('', '');
       $('pRef').textContent = '-'; $('pPromo').textContent = '';
       $('pTag').style.visibility = 'hidden';
     }
     liveDiff();
   }
   var IMG_PH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>';
-  function setImg(src){
+  function setImg(src, code){
     var box = $('pImg'); box.innerHTML = IMG_PH;
-    if (!src || !/^https?:\/\//i.test(src)) return;
-    var im = new Image(); im.alt = ''; im.referrerPolicy = 'no-referrer';
-    im.style.cssText = 'width:100%;height:100%;object-fit:contain';
-    im.onload = function(){ box.innerHTML = ''; box.appendChild(im); };
-  im.src = src;
+    var tries = [];
+    if (src && /^(https?:)?\/\//i.test(src)) tries.push(src);
+    var k = String(code || '').replace(/\D/g, '');
+    if (k) ['', '.1', '_1', '-1'].forEach(function(sf){ ['jpg','png','webp','jpeg'].forEach(function(e){ tries.push('img/' + k + sf + '.' + e); }); });
+    if (k) ['png','jpg','webp','jpeg'].forEach(function(e){ tries.push(k + '.' + e); });   // ảnh để ngay thư mục ngoài cùng
+    var token = ++imgToken;
+    (function next(i){
+      if (token !== imgToken || i >= tries.length) return;
+      var im = new Image(); im.alt = ''; im.referrerPolicy = 'no-referrer';
+      im.style.cssText = 'width:100%;height:100%;object-fit:contain';
+      im.onload = function(){ if (token === imgToken){ box.innerHTML = ''; box.appendChild(im); } };
+      im.onerror = function(){ next(i + 1); };
+      im.src = tries[i];
+    })(0);
   }
+  var imgToken = 0;
   // điền sẵn giá đã ghi (để sửa); clearIfNone: xóa ô nếu chưa có bản ghi
   function fillRec(clearIfNone){
     var comp = $('comp').value, rec = found ? checks[checkId(rowLd(found), found.c, comp)] : null;
@@ -858,25 +868,13 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     return m ? m[1] + '-' + m[2] + '-' + m[3] : '';
   }
   var sheetUsed = '';
-  async function importFile(file){
-    var rows; sheetUsed = '';
-    try {
-      var buf = await file.arrayBuffer();
-      if (window.XLSX){
-        var wb = XLSX.read(buf, { type:'array' });
-        var sn = wb.SheetNames.filter(function(n){ return /price\s*check/i.test(n); })[0] || wb.SheetNames[0]; sheetUsed = sn + ' (trong ' + wb.SheetNames.length + ' sheet: ' + wb.SheetNames.join(', ') + ')';
-        rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header:1, raw:true, defval:'' });
-      } else if (/\.(csv|txt)$/i.test(file.name)){
-        rows = parseCSV(new TextDecoder('utf-8').decode(buf));
-      } else {
-        say($('msg3'), 'Thư viện đọc Excel chưa tải được (mạng yếu). Thử lại hoặc dùng file CSV.', 'err'); return false;
-      }
-    } catch(e){ say($('msg3'), 'Không đọc được file: ' + ((e && e.message) || ''), 'err'); return false; }
-    var hr = -1;
+  function parseRows(rows){
+    var hr = -1, hrFound = false;
     for (var i = 0; i < Math.min(rows.length, 30) && hr < 0; i++){
       if (rows[i].some(function(c){ return /barcode|upc|ma vach/.test(norm(c)); })) hr = i;
     }
-    if (hr < 0) hr = 0;
+    hrFound = hr >= 0; if (hr < 0) hr = 0;
+    if (!rows.length) return { out: [], bad: 0, hr: 0, found: false, head: '' };
     var h = rows[hr].map(norm);
     function find(re, skip){ for (var j = 0; j < h.length; j++) if (re.test(h[j]) && (!skip || skip.indexOf(j) < 0)) return j; return -1; }
     var ci = find(/barcode|upc|ma vach|ean/);
@@ -898,11 +896,38 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     var out = [], bad = 0;
     for (var r = hr + 1; r < rows.length; r++){
       var row = rows[r], c = cellText(row[ci]);
-      if (!codeKey(c)){ bad++; continue; }
+      if (!codeKey(c) || (!hrFound && codeKey(c).length < 6)){ bad++; continue; }
       out.push({ c: c, ic: ii >= 0 ? cellText(row[ii]) : '', n: ni >= 0 ? cellText(row[ni]) : '', u: ui >= 0 ? cellText(row[ui]) : '',
         img: gi >= 0 ? cellText(row[gi]) : '', d: di >= 0 ? dateCell(row[di]) : '', np: priceCell(row[np]), pp: pp >= 0 ? priceCell(row[pp]) : null });
     }
-    if (!out.length){ say($('msg3'), 'Không tìm thấy dòng nào có Barcode. Kiểm tra dòng tiêu đề.', 'err'); return false; }
+    return { out: out, bad: bad, hr: hr, found: hrFound, head: (rows[hr] || []).slice(0, 8).map(cellText).join(' | ') };
+  }
+  async function importFile(file){
+    var best = null, diag = [];
+    sheetUsed = '';
+    try {
+      var buf = await file.arrayBuffer();
+      if (window.XLSX){
+        var wb = XLSX.read(buf, { type:'array' });
+        wb.SheetNames.forEach(function(n){
+          var rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:'' });
+          var pr = parseRows(rows);
+          diag.push('[' + n + '] ' + rows.length + ' dòng, ' + pr.out.length + ' có mã' + (pr.found ? ', tiêu đề: ' + pr.head : ', không thấy dòng tiêu đề Barcode'));
+          if (!pr.out.length) return;
+          var score = pr.out.length + (pr.found ? 0.5 : 0) + (/price\s*check/i.test(n) ? 0.25 : 0);
+          if (!best || score > best.score){ best = pr; best.score = score; best.name = n; }
+        });
+        sheetUsed = best ? best.name + ' (trong ' + wb.SheetNames.length + ' sheet: ' + wb.SheetNames.join(', ') + ')' : '';
+      } else if (/\.(csv|txt)$/i.test(file.name)){
+        var pr2 = parseRows(parseCSV(new TextDecoder('utf-8').decode(buf)));
+        diag.push('CSV: ' + pr2.out.length + ' có mã');
+        if (pr2.out.length){ best = pr2; best.name = file.name; sheetUsed = file.name; }
+      } else {
+        say($('msg3'), 'Thư viện đọc Excel chưa tải được (mạng yếu). Thử lại hoặc dùng file CSV.', 'err'); return false;
+      }
+    } catch(e){ say($('msg3'), 'Không đọc được file: ' + ((e && e.message) || ''), 'err'); return false; }
+    if (!best){ say($('msg3'), 'Không tìm thấy dòng nào có Barcode. ' + diag.join(' ; '), 'err'); return false; }
+    var out = best.out, bad = best.bad, hr = best.hr;
     list = out; saveList();
     var ms2 = months(), t2 = todayIso().slice(0,7);
     if (curMonth && ms2.indexOf(curMonth) < 0) curMonth = '';
