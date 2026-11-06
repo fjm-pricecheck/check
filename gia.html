@@ -481,7 +481,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     p.hidden = false;
     if (found){
       $('pName').textContent = found.n || '(không có tên)';
-      $('pCode').textContent = found.c;
+      $('pCode').textContent = found.nb ? 'Item ' + found.c + ' (không có barcode)' : found.c;
       setImg(found.img, found.c);
       $('pRef').textContent = found.np != null ? fmt(found.np) : '-';
       $('pPromo').textContent = found.pp ? 'KM ' + fmt(found.pp) : '';
@@ -656,7 +656,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     var existed = !!checks[id];
     var y = ld.slice(0,4), mo = ld.slice(5,7), dd = ld.slice(8,10);
     var rec = {
-      barcode: barcode, itemCode: found ? found.ic : '', name: found ? found.n : '', unit: found ? found.u : '',
+      barcode: barcode, noBar: found ? !!found.nb : false, itemCode: found ? (found.nb ? found.c : found.ic) : '', name: found ? found.n : '', unit: found ? found.u : '',
       listDate: ld, year: y, month: mo, day: dd, comp: comp,
       normal: price, promo: isNaN(promo) ? 0 : promo,
       fjmN: found && found.np != null ? found.np : null, fjmP: found && found.pp != null ? found.pp : null,
@@ -792,7 +792,7 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     var lines = [head.map(csvCell).join(',')];
     order.forEach(function(gk){
       var g = groups[gk], b = g.base, ld = b.listDate || '';
-      var row = [ld.slice(0,4), ld.slice(5,7), ld.slice(8,10), ld ? dmy(ld) : '', '="' + b.barcode + '"', b.itemCode ? '="' + b.itemCode + '"' : '', b.name];
+      var row = [ld.slice(0,4), ld.slice(5,7), ld.slice(8,10), ld ? dmy(ld) : '', b.noBar ? '' : '="' + b.barcode + '"', b.itemCode ? '="' + b.itemCode + '"' : '', b.name];
       COMPS.forEach(function(c){
         var r = g.by[c.k];
         if (!r){ row.push('', '', '', '', ''); return; }
@@ -895,9 +895,10 @@ body:not(.admin) #todoBox,body:not(.admin) #btnWatch,body:not(.admin) #refBox:no
     if (ni < 0) ni = [0,1,2].filter(function(x){ return x !== ci && x !== np && x !== ii; })[0];
     var out = [], bad = 0;
     for (var r = hr + 1; r < rows.length; r++){
-      var row = rows[r], c = cellText(row[ci]);
+      var row = rows[r], c = cellText(row[ci]), icv = ii >= 0 ? cellText(row[ii]) : '', nb = false;
+      if (!codeKey(c) && codeKey(icv) && hrFound){ c = icv; nb = true; }   // không có barcode: dùng Item Code
       if (!codeKey(c) || (!hrFound && codeKey(c).length < 6)){ bad++; continue; }
-      out.push({ c: c, ic: ii >= 0 ? cellText(row[ii]) : '', n: ni >= 0 ? cellText(row[ni]) : '', u: ui >= 0 ? cellText(row[ui]) : '',
+      out.push({ c: c, nb: nb, ic: icv, n: ni >= 0 ? cellText(row[ni]) : '', u: ui >= 0 ? cellText(row[ui]) : '',
         img: gi >= 0 ? cellText(row[gi]) : '', d: di >= 0 ? dateCell(row[di]) : '', np: priceCell(row[np]), pp: pp >= 0 ? priceCell(row[pp]) : null });
     }
     return { out: out, bad: bad, hr: hr, found: hrFound, head: (rows[hr] || []).slice(0, 8).map(cellText).join(' | ') };
